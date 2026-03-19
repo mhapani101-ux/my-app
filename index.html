@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Studio: Personal AI</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <style>
+        :root { --bg: #0b141a; --chat-bg: #0b141a; --my-msg: #005c4b; --their-msg: #202c33; --gold: #C9972A; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; margin: 0; background: var(--bg); color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar/Settings Area */
+        #settings-bar { padding: 15px; background: #202c33; border-bottom: 1px solid #303c44; }
+        .slider-container { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        input[type=range] { flex-grow: 1; accent-color: var(--gold); }
+
+        /* WhatsApp Style Chat Interface */
+        #chat-window { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcd2de2.png'); }
+        .bubble { max-width: 75%; padding: 8px 12px; border-radius: 10px; position: relative; font-size: 15px; line-height: 1.4; }
+        .mine { align-self: flex-end; background: var(--my-msg); border-bottom-right-radius: 2px; }
+        .theirs { align-self: flex-start; background: var(--their-msg); border-bottom-left-radius: 2px; }
+
+        /* Input Area */
+        #input-area { padding: 10px; background: #202c33; display: flex; gap: 10px; align-items: center; }
+        input[type=text] { flex-grow: 1; background: #2a3942; border: none; padding: 12px; border-radius: 20px; color: white; outline: none; }
+        .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #8696a0; }
+        
+        /* AI/Web Help Toggle */
+        .ai-status { font-size: 11px; color: var(--gold); text-align: center; padding: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="settings-bar">
+        <div class="slider-container">
+            <span>🐢</span>
+            <input type="range" id="speed-slider" min="0.2" max="4.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+            <span>4.0x</span>
+            <strong id="speed-label">1.0x</strong>
+        </div>
+    </div>
+
+    <div id="chat-window">
+        <div class="bubble theirs">System: Ready for Live Interpreting. Tap the mic for Zoom/Call audio conversion.</div>
+    </div>
+
+    <div class="ai-status" id="ai-status">AI: Online | Internet: Connected</div>
+
+    <div id="input-area">
+        <button class="icon-btn" onclick="startVoice()">🎙️</button>
+        <input type="text" id="user-input" placeholder="Type a message or ask AI..." onkeypress="if(event.key==='Enter') sendMessage()">
+        <button class="icon-btn" onclick="sendMessage()">➤</button>
+    </div>
+
+    <script>
+        let speechRate = 1.0;
+        const chatWindow = document.getElementById('chat-window');
+
+        function updateSpeed(val) {
+            speechRate = val;
+            document.getElementById('speed-label').innerText = val + 'x';
+        }
+
+        function addMessage(text, side) {
+            const div = document.createElement('div');
+            div.className = `bubble ${side === 'me' ? 'mine' : 'theirs'}`;
+            div.innerText = text;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            
+            // Text-to-Speech with dynamic speed
+            if(side === 'theirs') {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = speechRate;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const text = input.value;
+            if(!text) return;
+            
+            addMessage(text, 'me');
+            input.value = '';
+
+            // Example AI + Internet Search Trigger
+            if(text.toLowerCase().includes("search") || text.toLowerCase().includes("who is")) {
+                document.getElementById('ai-status').innerText = "AI: Searching the web...";
+                // Insert your API Fetch logic here (OpenAI/Perplexity/DuckDuckGo)
+                setTimeout(() => {
+                    addMessage("Found this on the web: [Search Result Summary]", 'theirs');
+                    document.getElementById('ai-status').innerText = "AI: Online";
+                }, 1500);
+            }
+        }
+
+        // WhatsApp-style Live Listener
+        function startVoice() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const speechToText = event.results[0][0].transcript;
+                addMessage(speechToText, 'theirs'); // "Them" talking (Zoom/Mic)
+            };
+        }
+    </script>
+</body>
+</html>
